@@ -1,7 +1,7 @@
 
 # fights-db:    podman run --replace -d -p 27017:27017 --name fights-db -e MONGO_INITDB_DATABASE=fights -e MONGO_INITDB_ROOT_USERNAME=super -e MONGO_INITDB_ROOT_PASSWORD=super -v ./rest-fights/deploy/db-init/initialize-database.js:/docker-entrypoint-initdb.d/1-init-db.js mongo:7.0
-# heroes-db:    podman run -d -p 5432:5432 --name heroes-db -e POSTGRES_USER=superman -e POSTGRES_PASSWORD=superman -e POSTGRES_DB=heroes_database -v ./rest-heroes/deploy/db-init/initialize-tables.sql:/docker-entrypoint-initdb.d/1-init-tables.sql --replace postgres:16
-# villains-db:  podman run -d -p 5433:5432 --name villains-db -e POSTGRES_USER=superbad -e POSTGRES_PASSWORD=superbad -e POSTGRES_DB=villains_database -v ./rest-villains/deploy/db-init/initialize-tables.sql:/docker-entrypoint-initdb.d/1-init-tables.sql --replace postgres:16
+# heroes-db:    podman run -d -p 5432:5432 --name heroes-db -e POSTGRES_USER=superman -e POSTGRES_PASSWORD=superman -e POSTGRES_DB=heroes_database -v ./rest-heroes/deploy/db-init/initialize-tables.sql:/docker-entrypoint-initdb.d/1-init-tables.sql --replace mirror.gcr.io/library/postgres:16
+# villains-db:  podman run -d -p 5433:5432 --name villains-db -e POSTGRES_USER=superbad -e POSTGRES_PASSWORD=superbad -e POSTGRES_DB=villains_database -v ./rest-villains/deploy/db-init/initialize-tables.sql:/docker-entrypoint-initdb.d/1-init-tables.sql --replace mirror.gcr.io/library/postgres:16
 # apicurio:     podman run -d -p 8086:8086 --name apicurio -e REGISTRY_AUTH_ANONYMOUS_READ_ACCESS_ENABLED="true" -e QUARKUS_HTTP_PORT=8086 --replace quay.io/apicurio/apicurio-registry-mem:2.6.5.Final
 # locations-db: podman run -d -p 3306:3306 --name locations-db -e MARIADB_USER=locations -e MARIADB_PASSWORD=locations -e MARIADB_DATABASE=locations_database -e MARIADB_ROOT_PASSWORD=locations -e MARIADB_SKIP_TEST_DB=yes --replace mariadb:11.5
 
@@ -47,7 +47,7 @@ scripts:
       -p 14268:14268
       -p 14250:14250
       -p ${{OTEL_RECEIVER_PORT}}
-      ${{JAEGER_IMAGE:'docker.io/jaegertracing/all-in-one:1'}}
+      ${{JAEGER_IMAGE:'mirror.gcr.io/jaegertracing/all-in-one:1'}}
     then:
     - regex: (?<HOST.JAEGER_POD_ID>[a-f0-9]{64}$)
       else:
@@ -76,7 +76,7 @@ scripts:
       -p 13133:13133
       -p ${{OTEL_RECEIVER_PORT}}:4317
       -v /tmp/otel-collector-config.yaml:/conf/otel-collector-config.yml
-      ${{OTEL_IMAGE:'docker.io/otel/opentelemetry-collector:0.112.0'}} --config=/conf/otel-collector-config.yml
+      ${{OTEL_IMAGE:'mirror.gcr.io/otel/opentelemetry-collector:0.112.0'}} --config=/conf/otel-collector-config.yml
     then:
     - regex: (?<HOST.OTEL_POD_ID>[a-f0-9]{64}$)
       else:
@@ -106,7 +106,7 @@ scripts:
         -e POSTGRES_PASSWORD=superman
         -e POSTGRES_DB=heroes_database
         -v ${{SUPERHEROES_FOLDER}}/rest-heroes/deploy/db-init/initialize-tables.sql:/docker-entrypoint-initdb.d/1-init-tables.sql
-        ${{HEROES_DB_IMAGE:'postgres:16'}}
+        ${{HEROES_DB_IMAGE:'mirror.gcr.io/library/postgres:16'}}
       then:
       - regex: (?<HOST.HEROES_DB_POD_ID>[a-f0-9]{64}$)
         else:
@@ -146,6 +146,16 @@ scripts:
       - regex: (?<HOST.HEROES_REST_POD_ID>[a-f0-9]{64}$)
         else:
         - abort: failed to capture pod id for Heroes rest service
+    - sh: ${{CONTAINER_RUNTIME}} logs -f ${{HOST.HEROES_REST_POD_ID}}
+      silent: true # prevent logs to be printed in the terminal
+      watch:
+      - regex: started in.*Listening on
+        then:
+        - ctrlC
+      timer:
+        1m: # max wait time
+        - abort: Heroes rest has not been ready in 1 min
+    - signal: HEROES_REST_READY
 
   ###### VILLAINS ######
   start-villains-db:
@@ -160,7 +170,7 @@ scripts:
         -e POSTGRES_PASSWORD=superbad
         -e POSTGRES_DB=villains_database
         -v ${{SUPERHEROES_FOLDER}}/rest-villains/deploy/db-init/initialize-tables.sql:/docker-entrypoint-initdb.d/1-init-tables.sql
-        ${{VILLAINS_DB_IMAGE:'postgres:16'}}
+        ${{VILLAINS_DB_IMAGE:'mirror.gcr.io/library/postgres:16'}}
       then:
       - regex: (?<HOST.VILLAINS_DB_POD_ID>[a-f0-9]{64}$)
         else:
@@ -202,6 +212,16 @@ scripts:
       - regex: (?<HOST.VILLAINS_REST_POD_ID>[a-f0-9]{64}$)
         else:
         - abort: failed to capture pod id for Villains rest service
+    - sh: ${{CONTAINER_RUNTIME}} logs -f ${{HOST.VILLAINS_REST_POD_ID}}
+      silent: true # prevent logs to be printed in the terminal
+      watch:
+      - regex: started in.*Listening on
+        then:
+        - ctrlC
+      timer:
+        1m: # max wait time
+        - abort: Villains rest has not been ready in 1 min
+    - signal: VILLAINS_REST_READY
 
   ###### LOCATIONS ######
 
@@ -219,7 +239,7 @@ scripts:
         -e MARIADB_ROOT_PASSWORD=locations
         -e MARIADB_SKIP_TEST_DB=yes
         -v ${{SUPERHEROES_FOLDER}}/grpc-locations/deploy/db-init/initialize-tables.sql:/docker-entrypoint-initdb.d/1-init-tables.sql
-        ${{LOCATIONS_DB_IMAGE:'docker.io/library/mariadb:11.5'}}
+        ${{LOCATIONS_DB_IMAGE:'mirror.gcr.io/library/mariadb:11.5'}}
       then:
       - regex: (?<HOST.LOCATIONS_DB_POD_ID>[a-f0-9]{64}$)
         else:
@@ -260,6 +280,16 @@ scripts:
       - regex: (?<HOST.LOCATIONS_GRPC_POD_ID>[a-f0-9]{64}$)
         else:
         - abort: failed to capture pod id for Locations grpc service
+    - sh: ${{CONTAINER_RUNTIME}} logs -f ${{HOST.LOCATIONS_GRPC_POD_ID}}
+      silent: true # prevent logs to be printed in the terminal
+      watch:
+      - regex: started in.*Listening on
+        then:
+        - ctrlC
+      timer:
+        1m: # max wait time
+        - abort: Locations grpc has not been ready in 1 min
+    - signal: LOCATIONS_REST_READY
 
   ###### FIGHTS ######
   start-fights-db:
@@ -412,6 +442,55 @@ scripts:
 
   cleanup-datasources:
   - script: cleanup-superheroes-repo
+  - read-state: ${{HOST.OTEL_POD_ID}}
+    then:
+    - queue-download: ${{OTEL_LOGS_FILE}}
+    - sh: ${{CONTAINER_RUNTIME}} logs ${{HOST.OTEL_POD_ID}} > ${{OTEL_LOGS_FILE}}
+      silent: true
+  - read-state: ${{HOST.JAEGER_POD_ID}}
+    then:
+    - queue-download: ${{JAEGER_LOGS_FILE}}
+    - sh: ${{CONTAINER_RUNTIME}} logs ${{HOST.JAEGER_POD_ID}} > ${{JAEGER_LOGS_FILE}}
+      silent: true
+  - js: ${{FIGHTS_ENABLED}}
+    then:
+    - read-state: ${{HOST.APICURIO_POD_ID}}
+      then:
+      - queue-download: ${{APICURIO_LOGS_FILE}}
+      - sh: ${{CONTAINER_RUNTIME}} logs ${{HOST.APICURIO_POD_ID}} > ${{APICURIO_LOGS_FILE}}
+        silent: true
+    - read-state: ${{HOST.KAFKA_POD_ID}}
+      then:
+      - queue-download: ${{KAFKA_LOGS_FILE}}
+      - sh: ${{CONTAINER_RUNTIME}} logs ${{HOST.KAFKA_POD_ID}} > ${{KAFKA_LOGS_FILE}}
+        silent: true
+    - read-state: ${{HOST.FIGHTS_DB_POD_ID}}
+      then:
+      - queue-download: ${{FIGHTS_DB_LOGS_FILE}}
+      - sh: ${{CONTAINER_RUNTIME}} logs ${{HOST.FIGHTS_DB_POD_ID}} > ${{FIGHTS_DB_LOGS_FILE}}
+        silent: true
+  - js: ${{HEROES_ENABLED}}
+    then:
+    - read-state: ${{HOST.HEROES_DB_POD_ID}}
+      then:
+      - queue-download: ${{HEROES_DB_LOGS_FILE}}
+      - sh: ${{CONTAINER_RUNTIME}} logs ${{HOST.HEROES_DB_POD_ID}} > ${{HEROES_DB_LOGS_FILE}}
+        silent: true
+  - js: ${{VILLAINS_ENABLED}}
+    then:
+    - read-state: ${{HOST.VILLAINS_DB_POD_ID}}
+      then:
+      - queue-download: ${{VILLAINS_DB_LOGS_FILE}}
+      - sh: ${{CONTAINER_RUNTIME}} logs ${{HOST.VILLAINS_DB_POD_ID}} > ${{VILLAINS_DB_LOGS_FILE}}
+        silent: true
+  - js: ${{LOCATIONS_ENABLED}}
+    then:
+    - read-state: ${{HOST.LOCATIONS_DB_POD_ID}}
+      then:
+      - queue-download: ${{LOCATIONS_DB_LOGS_FILE}}
+      - sh: ${{CONTAINER_RUNTIME}} logs ${{HOST.LOCATIONS_DB_POD_ID}} > ${{LOCATIONS_DB_LOGS_FILE}}
+        silent: true
+
   # remove all pods
   - sh: ${{CONTAINER_RUNTIME}} rm -f ${{HOST.KAFKA_POD_ID:}} ${{HOST.APICURIO_POD_ID:}} ${{HOST.FIGHTS_DB_POD_ID:}} ${{HOST.VILLAINS_DB_POD_ID:}} ${{HOST.HEROES_DB_POD_ID:}} ${{HOST.LOCATIONS_DB_POD_ID:}} ${{HOST.JAEGER_POD_ID:}} ${{HOST.OTEL_POD_ID:}}
 
@@ -454,17 +533,21 @@ states:
   SUPERHEROES_FOLDER: /tmp/quarkus-super-heroes
 
   # Opentelemetry
-  JAEGER_IMAGE: "docker.io/jaegertracing/all-in-one:1"
-  OTEL_IMAGE: "docker.io/otel/opentelemetry-collector:0.112.0"
+  JAEGER_IMAGE: "mirror.gcr.io/jaegertracing/all-in-one:1"
+  JAEGER_LOGS_FILE: /tmp/jaeger.logs
+
+  OTEL_IMAGE: "mirror.gcr.io/otel/opentelemetry-collector:0.112.0"
   OTEL_PROTOCOL: "http"
   OTEL_HOSTNAME:
   OTEL_RECEIVER_PORT: 4317
+  OTEL_LOGS_FILE: /tmp/otel.logs
 
   # Heroes
   HEROES_ENABLED: true
-  HEROES_DB_IMAGE: "docker.io/library/postgres:16"
+  HEROES_DB_IMAGE: "mirror.gcr.io/library/postgres:16"
   HEROES_DB_HOSTNAME: 
   HEROES_DB_PORT: 5432
+  HEROES_DB_LOGS_FILE: /tmp/heroes_db.logs
 
   HEROES_REST_IMAGE: "quay.io/quarkus-super-heroes/rest-heroes:native-latest"
   HEROES_REST_HOSTNAME: 
@@ -473,9 +556,10 @@ states:
 
   # Villains
   VILLAINS_ENABLED: true
-  VILLAINS_DB_IMAGE: "docker.io/library/postgres:16"
+  VILLAINS_DB_IMAGE: "mirror.gcr.io/library/postgres:16"
   VILLAINS_DB_HOSTNAME: 
   VILLAINS_DB_PORT: 5433
+  VILLAINS_DB_LOGS_FILE: /tmp/villains_db.logs
 
   VILLAINS_REST_IMAGE: "quay.io/quarkus-super-heroes/rest-villains:native-latest"
   VILLAINS_REST_HOSTNAME: 
@@ -484,9 +568,10 @@ states:
 
   # Locations
   LOCATIONS_ENABLED: true
-  LOCATIONS_DB_IMAGE: "docker.io/library/mariadb:11.5"
+  LOCATIONS_DB_IMAGE: "mirror.gcr.io/library/mariadb:11.5"
   LOCATIONS_DB_HOSTNAME:
   LOCATIONS_DB_PORT: 3306
+  LOCATIONS_DB_LOGS_FILE: /tmp/locations_db.logs
 
   LOCATIONS_GRPC_IMAGE: "quay.io/quarkus-super-heroes/grpc-locations:native-latest"
   LOCATIONS_GRPC_HOSTNAME: 
@@ -495,17 +580,20 @@ states:
 
   # Fights
   FIGHTS_ENABLED: true
-  FIGHTS_DB_IMAGE: "mongo:7.0"
+  FIGHTS_DB_IMAGE: "mirror.gcr.io/library/mongo:7.0"
   FIGHTS_DB_HOSTNAME: 
   FIGHTS_DB_PORT: 27017
+  FIGHTS_DB_LOGS_FILE: /tmp/fights_db.logs
 
   APICURIO_IMAGE: "quay.io/apicurio/apicurio-registry-mem:2.6.5.Final"
   APICURIO_HOSTNAME: 
   APICURIO_PORT: 8086
+  APICURIO_LOGS_FILE: /tmp/apicurio.logs
 
   KAFKA_IMAGE: "quay.io/strimzi/kafka:0.43.0-kafka-3.8.0"
   KAFKA_HOSTNAME: 
   KAFKA_PORT: 9092
+  KAFKA_LOGS_FILE: /tmp/kafka.logs
 
   FIGHTS_REST_IMAGE: "quay.io/quarkus-super-heroes/rest-fights:native-latest"
   FIGHTS_REST_HOSTNAME: 
