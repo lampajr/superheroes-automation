@@ -19,6 +19,7 @@ scripts:
   # infer the hostnames based on the provided host servers
   - set-state: HEROES_DB_HOSTNAME ${{= getHostname( '${{DS_SERVER}}' )}}
   - set-state: VILLAINS_DB_HOSTNAME ${{= getHostname( '${{DS_SERVER}}' )}}
+  - set-state: LOCATIONS_DB_HOSTNAME ${{= getHostname( '${{DS_SERVER}}' )}}
   - set-state: FIGHTS_DB_HOSTNAME ${{= getHostname( '${{DS_SERVER}}' )}}
   - set-state: APICURIO_HOSTNAME ${{= getHostname( '${{DS_SERVER}}' )}}
   - set-state: KAFKA_HOSTNAME ${{= getHostname( '${{DS_SERVER}}' )}}
@@ -133,6 +134,9 @@ scripts:
     - sh: >
         ${{CONTAINER_RUNTIME}} run -d
         --name rest-heroes
+        --privileged
+        --memory 1G
+        --cpus 1
         -p ${{HEROES_REST_PORT}}:8083
         -e QUARKUS_DATASOURCE_REACTIVE_URL=postgresql://${{HEROES_DB_HOSTNAME}}:${{HEROES_DB_PORT}}/heroes_database
         -e QUARKUS_HIBERNATE_ORM_DATABASE_GENERATION=validate
@@ -197,6 +201,7 @@ scripts:
     - sh: >
         ${{CONTAINER_RUNTIME}} run -d
         --name rest-villains
+        --privileged
         --memory 1G
         --cpus 1
         -p ${{VILLAINS_REST_PORT}}:8084
@@ -265,6 +270,7 @@ scripts:
     - sh: >
         ${{CONTAINER_RUNTIME}} run -d
         --name grpc-locations
+        --privileged
         --memory 1G
         --cpus 1
         -p ${{LOCATIONS_GRPC_PORT}}:8089  
@@ -387,6 +393,7 @@ scripts:
     - log: starting Fights rest service...
     - sh: >
         ${{CONTAINER_RUNTIME}} run -d
+        --privileged
         --name rest-fights 
         -p ${{FIGHTS_REST_PORT}}:8082
         --memory 1G

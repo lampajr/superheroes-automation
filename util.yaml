@@ -3,7 +3,8 @@ globals:
   javascript: |
     // returns the `host` network if running locally otherwise empty string
     function getNetwork(server){
-      return server == 'LOCAL' ? '--network host' : ''
+      // return server == 'LOCAL' ? '--network host' : ''
+      return '--network host'
     }
     // retrieves the hostname from the specified server
     function getHostname(server){
