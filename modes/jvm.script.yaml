@@ -8,3 +8,6 @@ states:
   LOCATIONS_GRPC_IMAGE: "quay.io/quarkus-super-heroes/grpc-locations:java21-latest"
   FIGHTS_REST_IMAGE: "quay.io/quarkus-super-heroes/rest-fights:java21-latest"
   FIGHTS_UI_IMAGE: "quay.io/quarkus-super-heroes/ui-super-heroes:java21-latest"
+
+  # change these values
+  CONTAINER_RUNTIME_PARAMS:

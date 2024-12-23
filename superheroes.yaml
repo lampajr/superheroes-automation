@@ -134,7 +134,7 @@ scripts:
     - sh: >
         ${{CONTAINER_RUNTIME}} run -d
         --name rest-heroes
-        --privileged
+        ${{ CONTAINER_RUNTIME_PARAMS }}
         --memory 1G
         --cpus 1
         -p ${{HEROES_REST_PORT}}:8083
@@ -201,7 +201,7 @@ scripts:
     - sh: >
         ${{CONTAINER_RUNTIME}} run -d
         --name rest-villains
-        --privileged
+        ${{ CONTAINER_RUNTIME_PARAMS }}
         --memory 1G
         --cpus 1
         -p ${{VILLAINS_REST_PORT}}:8084
@@ -270,7 +270,7 @@ scripts:
     - sh: >
         ${{CONTAINER_RUNTIME}} run -d
         --name grpc-locations
-        --privileged
+        ${{ CONTAINER_RUNTIME_PARAMS }}
         --memory 1G
         --cpus 1
         -p ${{LOCATIONS_GRPC_PORT}}:8089  
@@ -393,8 +393,8 @@ scripts:
     - log: starting Fights rest service...
     - sh: >
         ${{CONTAINER_RUNTIME}} run -d
-        --privileged
         --name rest-fights 
+        ${{ CONTAINER_RUNTIME_PARAMS }}
         -p ${{FIGHTS_REST_PORT}}:8082
         --memory 1G
         --cpus 1

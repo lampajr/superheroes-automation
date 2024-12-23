@@ -113,4 +113,5 @@ states:
 
   # change these values
   CONTAINERFILES_FOLDER: semeru
+  CONTAINER_RUNTIME_PARAMS: --privileged
   JAVA_VERSION: 21

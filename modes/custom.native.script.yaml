@@ -65,3 +65,6 @@ states:
   SUPERHEROES_BUILD_FOLDER: /tmp/build-quarkus-super-heroes
 
   SUPERHEROES_CUSTOM_TAG: local-main
+
+  # change these values
+  CONTAINER_RUNTIME_PARAMS:
