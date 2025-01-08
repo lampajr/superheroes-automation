@@ -26,10 +26,10 @@ phases:
   - performFight:
       constantRate:
         startAfter: warmUp
-        usersPerSec: !param USERS_PER_SEC 20
+        usersPerSec: !param USERS_PER_SEC 120
         maxSessions: !param MAX_SESSIONS 200
-        duration: !param DURATION 10s
-        scenario:
+        duration: !param DURATION 3m
+        scenario: &performFight
           initialSequences:
             - getRandomFighters:
                 - httpRequest:
@@ -83,17 +83,7 @@ phases:
   - warmUp:
       increasingRate:
         initialUsersPerSec: 1
-        targetUsersPerSec: !param USERS_PER_SEC 20
-        duration: !param WARMUP_DURATION 20s
-        scenario:
-          initialSequences:
-            - getRandomFighters:
-                - httpRequest:
-                    GET: /api/fights/randomfighters
-                    headers:
-                      accept: application/json
-            - getRandomLocation:
-                - httpRequest:
-                    GET: /api/fights/randomlocation
-                    headers:
-                      accept: application/json
+        targetUsersPerSec: !param USERS_PER_SEC 120
+        maxSessions: !param MAX_SESSIONS 200
+        duration: !param WARMUP_DURATION 30s
+        scenario: *performFight

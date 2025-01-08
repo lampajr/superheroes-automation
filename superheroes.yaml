@@ -45,9 +45,10 @@ scripts:
       ${{CONTAINER_RUNTIME}} run -d
       --name jaeger
       -p 16686:16686
-      -p 14268:14268
-      -p 14250:14250
+      -p 14268
+      -p 14250
       -p ${{OTEL_RECEIVER_PORT}}
+      -e COLLECTOR_OTLP_ENABLED=true
       ${{JAEGER_IMAGE:'mirror.gcr.io/jaegertracing/all-in-one:1'}}
     then:
     - regex: (?<HOST.JAEGER_POD_ID>[a-f0-9]{64}$)
@@ -77,6 +78,7 @@ scripts:
       -p 13133:13133
       -p ${{OTEL_RECEIVER_PORT}}:4317
       -v /tmp/otel-collector-config.yaml:/conf/otel-collector-config.yml
+      ${{= getNetwork( '${{DS_SERVER}}' ) }}
       ${{OTEL_IMAGE:'mirror.gcr.io/otel/opentelemetry-collector:0.112.0'}} --config=/conf/otel-collector-config.yml
     then:
     - regex: (?<HOST.OTEL_POD_ID>[a-f0-9]{64}$)
@@ -137,6 +139,7 @@ scripts:
         ${{ CONTAINER_RUNTIME_PARAMS }}
         --memory ${{HEROES_REST_MEMORY}}
         --cpus ${{HEROES_REST_CPU}}
+        --user "$(id -u):$(id -g)"
         -p ${{HEROES_REST_PORT}}:8083
         -e QUARKUS_DATASOURCE_REACTIVE_URL=postgresql://${{HEROES_DB_HOSTNAME}}:${{HEROES_DB_PORT}}/heroes_database
         -e QUARKUS_HIBERNATE_ORM_DATABASE_GENERATION=validate
@@ -150,6 +153,9 @@ scripts:
       - regex: (?<HOST.HEROES_REST_POD_ID>[a-f0-9]{64}$)
         else:
         - abort: failed to capture pod id for Heroes rest service
+      - sh: ${{CONTAINER_RUNTIME}} inspect --format='{{.State.Pid}}' ${{HOST.HEROES_REST_POD_ID}}
+        then:
+        - set-state: HOST.HEROES_REST_PID
     - sh: ${{CONTAINER_RUNTIME}} logs -f ${{HOST.HEROES_REST_POD_ID}}
       silent: true # prevent logs to be printed in the terminal
       watch:
@@ -204,6 +210,7 @@ scripts:
         ${{ CONTAINER_RUNTIME_PARAMS }}
         --memory ${{VILLAINS_REST_MEMORY}}
         --cpus ${{VILLAINS_REST_CPU}}
+        --user "$(id -u):$(id -g)"
         -p ${{VILLAINS_REST_PORT}}:8084
         -e QUARKUS_DATASOURCE_JDBC_URL=jdbc:postgresql://${{VILLAINS_DB_HOSTNAME}}:${{VILLAINS_DB_PORT}}/villains_database
         -e QUARKUS_HIBERNATE_ORM_DATABASE_GENERATION=validate
@@ -217,6 +224,9 @@ scripts:
       - regex: (?<HOST.VILLAINS_REST_POD_ID>[a-f0-9]{64}$)
         else:
         - abort: failed to capture pod id for Villains rest service
+      - sh: ${{CONTAINER_RUNTIME}} inspect --format='{{.State.Pid}}' ${{HOST.VILLAINS_REST_POD_ID}}
+        then:
+        - set-state: HOST.VILLAINS_REST_PID
     - sh: ${{CONTAINER_RUNTIME}} logs -f ${{HOST.VILLAINS_REST_POD_ID}}
       silent: true # prevent logs to be printed in the terminal
       watch:
@@ -244,6 +254,7 @@ scripts:
         -e MARIADB_ROOT_PASSWORD=locations
         -e MARIADB_SKIP_TEST_DB=yes
         -v ${{SUPERHEROES_FOLDER}}/grpc-locations/deploy/db-init/initialize-tables.sql:/docker-entrypoint-initdb.d/1-init-tables.sql
+        ${{= getNetwork( '${{DS_SERVER}}' ) }}
         ${{LOCATIONS_DB_IMAGE:'mirror.gcr.io/library/mariadb:11.5'}}
       then:
       - regex: (?<HOST.LOCATIONS_DB_POD_ID>[a-f0-9]{64}$)
@@ -273,6 +284,7 @@ scripts:
         ${{ CONTAINER_RUNTIME_PARAMS }}
         --memory ${{LOCATIONS_GRPC_MEMORY}}
         --cpus ${{LOCATIONS_GRPC_CPU}}
+        --user "$(id -u):$(id -g)"
         -p ${{LOCATIONS_GRPC_PORT}}:8089  
         -e QUARKUS_DATASOURCE_JDBC_URL=jdbc:mariadb://${{LOCATIONS_DB_HOSTNAME}}:${{LOCATIONS_DB_PORT}}/locations_database
         -e QUARKUS_HIBERNATE_ORM_DATABASE_GENERATION=validate
@@ -286,6 +298,9 @@ scripts:
       - regex: (?<HOST.LOCATIONS_GRPC_POD_ID>[a-f0-9]{64}$)
         else:
         - abort: failed to capture pod id for Locations grpc service
+      - sh: ${{CONTAINER_RUNTIME}} inspect --format='{{.State.Pid}}' ${{HOST.LOCATIONS_GRPC_POD_ID}}
+        then:
+        - set-state: HOST.LOCATIONS_GRPC_PID
     - sh: ${{CONTAINER_RUNTIME}} logs -f ${{HOST.LOCATIONS_GRPC_POD_ID}}
       silent: true # prevent logs to be printed in the terminal
       watch:
@@ -366,8 +381,9 @@ scripts:
         --name fights-kafka
         -p ${{KAFKA_PORT}}:9092 
         -e LOG_DIR=/tmp/logs
-        -e KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://localhost:9092
+        -e KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://${{KAFKA_HOSTNAME}}:9092
         --entrypoint sh
+        ${{= getNetwork( '${{DS_SERVER}}' ) }}
         ${{KAFKA_IMAGE:'quay.io/strimzi/kafka:0.43.0-kafka-3.8.0'}} -c 'export CLUSTER_ID=$(bin/kafka-storage.sh random-uuid) && bin/kafka-storage.sh format -t ${CLUSTER_ID} -c config/kraft/server.properties && bin/kafka-server-start.sh config/kraft/server.properties --override advertised.listeners=${KAFKA_ADVERTISED_LISTENERS}'
       then:
       - regex: (?<HOST.KAFKA_POD_ID>[a-f0-9]{64}$)
@@ -398,6 +414,7 @@ scripts:
         -p ${{FIGHTS_REST_PORT}}:8082
         --memory ${{FIGHTS_REST_MEMORY}}
         --cpus ${{FIGHTS_REST_CPU}}
+        --user "$(id -u):$(id -g)"
         -e QUARKUS_MONGODB_HOSTS=${{FIGHTS_DB_HOSTNAME}}:${{FIGHTS_DB_PORT}}
         -e QUARKUS_LIQUIBASE_MONGODB_MIGRATE_AT_START="false"
         -e QUARKUS_MONGODB_CREDENTIALS_USERNAME=superfight 
@@ -413,6 +430,9 @@ scripts:
       - regex: (?<HOST.FIGHTS_REST_POD_ID>[a-f0-9]{64}$)
         else:
         - abort: failed to capture pod id for Fights rest service
+      - sh: ${{CONTAINER_RUNTIME}} inspect --format='{{.State.Pid}}' ${{HOST.FIGHTS_REST_POD_ID}}
+        then:
+        - set-state: HOST.FIGHTS_REST_PID
     - sh: ${{CONTAINER_RUNTIME}} logs -f ${{HOST.FIGHTS_REST_POD_ID}}
       silent: true # prevent logs to be printed in the terminal
       watch:
