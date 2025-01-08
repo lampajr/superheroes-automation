@@ -40,11 +40,25 @@ roles:
     hosts:
       - driver
     setup-scripts:
+      - setup-hyperfoil
       - install-hyperfoil-catalog
       - upload-benchmark
     run-scripts:
       - run-benchmark
     cleanup-scripts:
       - cleanup-hyperfoil
+  profiler:
+    hosts:
+      - sut
+    run-scripts:
+      - run-pidstat
+      - run-vmstat
+      - run-mpstat
+      - run-pmap
+      - run-perfstat:
+          with:
+            PERFSTAT_SERVICE: FIGHTS
+    cleanup-scripts:
+      - cleanup-profiling
 
 states:
