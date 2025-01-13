@@ -62,6 +62,38 @@ scripts:
     # it should be able to automatically fetch it by running the following cmd
   - sh: jbang catalog list hyperfoil
 
+  extract-service-pid:
+  # CONTAINER_ID: the id of the running container
+  # STATE_PID: the state where the pid should be saved to
+  - sh: ${{CONTAINER_RUNTIME}} inspect --format='{{.State.Pid}}' ${{CONTAINER_ID}}
+  - regex: (^[1-9][0-9]*$)
+    then:
+    - set-state: ${{STATE_PID}}
+  # if we have wrappers as entrypoint we should find the java process
+  - js: ${{IS_ENTRYPOINT_WRAPPER}}
+    then:
+    - set-signal: stop 1
+    - repeat-until: stop
+      then:
+      - sh: ps --ppid ${{${{STATE_PID}}}} -o pid= | awk '{print $1}'
+      - regex: (^[1-9][0-9]*$)
+        then:
+        - set-state: ${{STATE_PID}}
+        - sh: ps --pid ${{${{STATE_PID}}}} -o cmd=
+        - regex: java
+          then:
+          - signal: stop
+        else:
+        - signal: stop
+  # inspect the pid
+  - sh: ps -p ${{${{STATE_PID}}}}
+
+
+
 states:
   JBANG_VERSION: "0.121.0"
   JAVA_VERSION: "21.0.5-tem"
+
+  # set to true if the container entrypoints are wrappers
+  # i.e., the main process is not the entrypoint itself
+  IS_ENTRYPOINT_WRAPPER: false

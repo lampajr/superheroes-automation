@@ -92,7 +92,7 @@ scripts:
   
   cleanup-profiling:
   - sh:
-      command: rm /tmp/vmstat.log /tmp/mpstat.log /tmp/*_rss.log /tmp/*_pidstat.log /tmp/*_perfstat.log
+      command: rm -rf /tmp/vmstat.log /tmp/mpstat.log /tmp/*_rss.log /tmp/*_pidstat.log /tmp/*_perfstat.log
       ignore-exit-code: true
 
 states:

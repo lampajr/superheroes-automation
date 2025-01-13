@@ -2,7 +2,7 @@ scripts:
 
   setup-hyperfoil:
   - sh: 
-      command: if [ -f ${{HF_TMP_DIR:/tmp/hyperfoil}}/hyperfoil.local.log ]; then rm ${{HF_TMP_DIR:/tmp/hyperfoil}}/hyperfoil.local.log; fi
+      command: if [ -f ${{HF_TMP_DIR:/tmp/hyperfoil}}/hyperfoil.local.log ]; then rm -f ${{HF_TMP_DIR:/tmp/hyperfoil}}/hyperfoil.local.log; fi
       ignore-exit-code: true
 
   upload-benchmark:
@@ -26,7 +26,7 @@ scripts:
 
   cleanup-hyperfoil:
   - sh: 
-      command: rm ${{HF_REPORT_FILE}} ${{HF_BENCHMARK_REF}}
+      command: rm -rf ${{HF_REPORT_FILE}} ${{HF_BENCHMARK_REF}}
       ignore-exit-code: true
 
 
