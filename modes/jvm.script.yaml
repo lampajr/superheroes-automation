@@ -13,3 +13,8 @@ states:
 
   # change these values
   CONTAINER_RUNTIME_PARAMS:
+
+
+  # profiling
+  ASPROF_ENABLED: true
+  SUDOER: sudo
