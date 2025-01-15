@@ -48,6 +48,19 @@ scripts:
             command: pmap -x ${{HOST.FIGHTS_REST_PID}} ${{PMAP_PARAMS:}} 2>/dev/null | grep total >> /tmp/FIGHTS_rss.log
             ignore-exit-code: true
 
+  run-strace:
+  - js: ${{STRACE_ENABLED}}
+    then:
+    - wait-for: HF_BENCHMARK_STARTED
+    - js: ${{FIGHTS_ENABLED}}
+      then:
+      - log: starting strace against ${{HOST.FIGHTS_REST_PID}}..
+      - sh: strace -p ${{HOST.FIGHTS_REST_PID}} ${{STRACE_PARAMS:}} 2> /tmp/FIGHTS_strace.log & export FIGHTS_STRACE_PID="$!"
+      - queue-download: /tmp/FIGHTS_strace.log
+    - wait-for: HF_BENCHMARK_TERMINATED
+      then:
+      - sh: kill ${FIGHTS_STRACE_PID} || echo "strace already stopped"
+
   run-perfstat:
   # PERFSTAT_SERVICE: service to monitor with perf stat FIGHTS, HEROES, VILLAINS or LOCATIONS
   - js: ${{PERFSTAT_ENABLED}} && ${{${{PERFSTAT_SERVICE}}_ENABLED}}
@@ -101,6 +114,9 @@ states:
 
   PMAP_ENABLED: true
   PMAP_PARAMS: 
+
+  STRACE_ENABLED: false
+  STRACE_PARAMS: -s 99 -ff
 
   PERFSTAT_ENABLED: true
   PERFSTAT_PARAMS: 
