@@ -324,8 +324,6 @@ scripts:
         ${{CONTAINER_RUNTIME}} run -d
         --name fights-db
         -p ${{FIGHTS_DB_PORT}}:27017
-        --memory 1G
-        --cpus 1
         -e MONGO_INITDB_DATABASE=fights
         -e MONGO_INITDB_ROOT_USERNAME=super
         -e MONGO_INITDB_ROOT_PASSWORD=super
