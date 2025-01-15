@@ -55,6 +55,7 @@ roles:
       - run-vmstat
       - run-mpstat
       - run-pmap
+      - run-strace
       - run-perfstat:
           with:
             PERFSTAT_SERVICE: FIGHTS
