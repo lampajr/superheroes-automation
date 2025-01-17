@@ -103,6 +103,16 @@ scripts:
       then:
       - sh: kill ${MPSTAT_PID} || echo "mpstat already stopped"
   
+  # parse the metrics from the generated profiling files and set them to 
+  # qDup states so that they can easily be exported
+  # RSS at the end
+  # RSS (min, max, mean)
+  # CPU usage (min, max, mean)
+  # vmstat? mpstat?
+  # HF metrics? 
+  export-metrics:
+  - log: exporting metrics..
+
   cleanup-profiling:
   - sh:
       command: rm -rf /tmp/vmstat.log /tmp/mpstat.log /tmp/*_rss.log /tmp/*_pidstat.log /tmp/*_perfstat.log
