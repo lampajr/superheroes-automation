@@ -19,6 +19,6 @@
 # Needed so the automation knows the service is up.
 cat out
 
-/opt/criu/criu restore --unprivileged -D ./cr --file-locks --shell-job -v4 --log-file=restore.log --skip-file-rwx-check --tcp-established 1>>out 2>>err </dev/null
+/opt/criu/criu restore --unprivileged -D ./cr --file-locks --shell-job -v4 --log-file=restore.log --skip-file-rwx-check --tcp-established 2>>err </dev/null
 
 exit 0
